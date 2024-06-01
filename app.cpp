@@ -26,7 +26,9 @@ int main() {
   std::cout << "Original size: " << org_size / 1024 << " kb" << std::endl;
   std::cout << "Draco size: " << bytes.size() / 1024 << " kb" << std::endl;
 
-  std::ofstream ofs("encode.drc", std::ios::binary);
+  std::string drc_path = "encode.drc";
+
+  std::ofstream ofs(drc_path, std::ios::binary);
   for (const char& b : bytes) {
     ofs << b;
   }
