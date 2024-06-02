@@ -23,7 +23,7 @@
 
 namespace draco_encode {
 
-Options::Options()
+DracoEncodeOptions::DracoEncodeOptions()
     : pos_quantization_bits(11),
       tex_coords_quantization_bits(10),
       compression_level(7) {}
@@ -33,8 +33,6 @@ std::unique_ptr<draco::Mesh> MakeMesh(
     const std::vector<Eigen::Vector2f>& uvs,
     const std::vector<Eigen::Vector3i>& indices,
     const std::vector<Eigen::Vector3i>& uv_indices) {
-  using namespace draco;
-
   std::unique_ptr<draco::Mesh> mesh(new draco::Mesh());
 
   // Set face size
@@ -58,27 +56,28 @@ std::unique_ptr<draco::Mesh> MakeMesh(
   auto uv_attribute = mesh->attribute(uv_att_id);
 
   // Set vertex positions
-  for (size_t i = 0; i < positions.size(); ++i) {
-    pos_attribute->SetAttributeValue(AttributeValueIndex(i), &positions[i]);
+  for (uint32_t i = 0; i < static_cast<uint32_t>(positions.size()); ++i) {
+    pos_attribute->SetAttributeValue(draco::AttributeValueIndex(i),
+                                     &positions[i]);
   }
 
   // Set UVs
-  for (uint32_t i = 0; i < uvs.size(); ++i) {
+  for (uint32_t i = 0; i < static_cast<uint32_t>(uvs.size()); ++i) {
     uv_attribute->SetAttributeValue(draco::AttributeValueIndex(i), &(uvs[i]));
   }
 
   // Set splitted faces
-  for (draco::FaceIndex i(0); i < indices.size(); ++i) {
+  for (uint32_t i = 0; i < static_cast<uint32_t>(indices.size()); ++i) {
     draco::Mesh::Face face;
-    for (int j = 0; j < 3; ++j) {
-      face[j] = 3 * i.value() + j;
+    for (uint32_t j = 0; j < 3; ++j) {
+      face[j] = 3 * i + j;
     }
-    mesh->SetFace(i, face);
+    mesh->SetFace(draco::FaceIndex(i), face);
   }
 
   // Set mapping from splitted vertex id to original vertex id
-  for (size_t i = 0; i < uv_indices.size(); ++i) {
-    for (int j = 0; j < 3; ++j) {
+  for (uint32_t i = 0; i < static_cast<uint32_t>(uv_indices.size()); ++i) {
+    for (uint32_t j = 0; j < 3; ++j) {
       pos_attribute->SetPointMapEntry(
           draco::PointIndex(i * 3 + j),
           draco::AttributeValueIndex(indices[i][j]));
@@ -91,11 +90,12 @@ std::unique_ptr<draco::Mesh> MakeMesh(
   return mesh;
 }
 
-bool EncodeMesh(const std::vector<Eigen::Vector3f>& verts,
-                const std::vector<Eigen::Vector2f>& uvs,
-                const std::vector<Eigen::Vector3i>& indices,
-                const std::vector<Eigen::Vector3i>& uv_indices,
-                Options& options, std::vector<char>& bytes) {
+bool DracoEncodeMesh(const std::vector<Eigen::Vector3f>& verts,
+                     const std::vector<Eigen::Vector2f>& uvs,
+                     const std::vector<Eigen::Vector3i>& indices,
+                     const std::vector<Eigen::Vector3i>& uv_indices,
+                     const DracoEncodeOptions& options,
+                     std::vector<char>& bytes) {
   std::unique_ptr<draco::PointCloud> pc;
   draco::Mesh* mesh = nullptr;
 
@@ -137,16 +137,6 @@ bool EncodeMesh(const std::vector<Eigen::Vector3f>& verts,
     expert_encoder.reset(new draco::ExpertEncoder(*pc));
   }
   expert_encoder->Reset(encoder.CreateExpertEncoderOptions(*pc));
-
-  // Check if there is an attribute that stores polygon edges. If so, we disable
-  // the default prediction scheme for the attribute as it actually makes the
-  // compression worse.
-  const int poly_att_id =
-      pc->GetAttributeIdByMetadataEntry("name", "added_edges");
-  if (poly_att_id != -1) {
-    expert_encoder->SetAttributePredictionScheme(
-        poly_att_id, draco::PredictionSchemeMethod::PREDICTION_NONE);
-  }
 
   bool ret = false;
   draco::EncoderBuffer buffer;
