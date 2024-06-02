@@ -43,6 +43,42 @@ std::vector<Eigen::Vector2f> DecodeUvs(draco::PointCloud* pc) {
   return uvs;
 }
 
+std::vector<Eigen::Vector<uint8_t, 3>> DecodeColors(draco::PointCloud* pc) {
+  std::vector<Eigen::Vector<uint8_t, 3>> colors;
+
+  const draco::PointAttribute* const att =
+      pc->GetNamedAttribute(draco::GeometryAttribute::COLOR);
+  if (att == nullptr || att->size() == 0) {
+    return colors;  // Position attribute must be valid.
+  }
+  colors.resize(att->size());
+  for (draco::AttributeValueIndex i(0); i < static_cast<uint32_t>(att->size());
+       ++i) {
+    if (!att->ConvertValue<uint8_t, 3>(i, colors[i.value()].data())) {
+      return colors;
+    }
+  }
+  return colors;
+}
+
+std::vector<Eigen::Vector3f> DecodeNormals(draco::PointCloud* pc) {
+  std::vector<Eigen::Vector3f> normals;
+
+  const draco::PointAttribute* const att =
+      pc->GetNamedAttribute(draco::GeometryAttribute::NORMAL);
+  if (att == nullptr || att->size() == 0) {
+    return normals;  // Position attribute must be valid.
+  }
+  normals.resize(att->size());
+  for (draco::AttributeValueIndex i(0); i < static_cast<uint32_t>(att->size());
+       ++i) {
+    if (!att->ConvertValue<float, 3>(i, normals[i.value()].data())) {
+      return normals;
+    }
+  }
+  return normals;
+}
+
 std::pair<std::vector<Eigen::Vector3i>, std::vector<Eigen::Vector3i>>
 DecodeFaces(draco::Mesh* mesh) {
   uint32_t num_faces = mesh->num_faces();
@@ -79,11 +115,13 @@ DecodeFaces(draco::Mesh* mesh) {
 
 namespace draco_decode {
 
-bool DracoDecodeMesh(const std::vector<char>& data,
-                     std::vector<Eigen::Vector3f>& verts,
-                     std::vector<Eigen::Vector2f>& uvs,
-                     std::vector<Eigen::Vector3i>& indices,
-                     std::vector<Eigen::Vector3i>& uv_indices) {
+bool DracoDecode(const std::vector<char>& data,
+                 std::vector<Eigen::Vector3f>& verts,
+                 std::vector<Eigen::Vector2f>& uvs,
+                 std::vector<Eigen::Vector3i>& indices,
+                 std::vector<Eigen::Vector3i>& uv_indices,
+                 std::vector<Eigen::Vector<uint8_t, 3>>& colors,
+                 std::vector<Eigen::Vector3f>& normals) {
   // Create a draco decoding buffer. Note that no data is copied in this step.
   draco::DecoderBuffer buffer;
   buffer.Init(data.data(), data.size());
@@ -112,6 +150,22 @@ bool DracoDecodeMesh(const std::vector<char>& data,
       mesh = in_mesh.get();
       pc = std::move(in_mesh);
     }
+
+    // Decode positions
+    verts = DecodePositions(mesh);
+
+    // Decode UVs
+    uvs = DecodeUvs(mesh);
+
+    // Decode colors
+    colors = DecodeColors(mesh);
+
+    // Decode normals
+    normals = DecodeNormals(mesh);
+
+    // Decode faces
+    std::tie(indices, uv_indices) = DecodeFaces(mesh);
+
   } else if (geom_type == draco::POINT_CLOUD) {
     // Failed to decode it as mesh, so let's try to decode it as a point
     // cloud.
@@ -124,21 +178,21 @@ bool DracoDecodeMesh(const std::vector<char>& data,
     }
     pc = std::move(statusor).value();
     timer.Stop();
+
+    // Decode positions
+    verts = DecodePositions(pc.get());
+
+    // Decode colors
+    colors = DecodeColors(pc.get());
+
+    // Decode normals
+    normals = DecodeNormals(pc.get());
   }
 
   if (pc == nullptr) {
     printf("Failed to decode the input file.\n");
     return false;
   }
-
-  // Decode positions
-  verts = DecodePositions(mesh);
-
-  // Decode UVs
-  uvs = DecodeUvs(mesh);
-
-  // Decode faces
-  std::tie(indices, uv_indices) = DecodeFaces(mesh);
 
   return true;
 }
