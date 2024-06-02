@@ -4,7 +4,6 @@
 
 #include "draco/compression/decode.h"
 #include "draco/core/cycle_timer.h"
-#include "draco/io/file_utils.h"
 
 namespace {
 
@@ -44,21 +43,6 @@ std::vector<Eigen::Vector2f> DecodeUvs(draco::PointCloud* pc) {
   return uvs;
 }
 
-#if 0
-std::vector<Eigen::Vector3i> DecodeFaces(const draco::PointAttribute* const att,
-                                         uint32_t num_faces) {
-  std::vector<Eigen::Vector3i> face(num_faces);
-  std::array<uint32_t, 3> f;
-  for (uint32_t i = 0; i < num_faces; i++) {
-    att->mapped_index() att->GetMappedValue(draco::PointIndex(i), &f);
-    face[i][0] = static_cast<int32_t>(f[0]);
-    face[i][1] = static_cast<int32_t>(f[1]);
-    face[i][2] = static_cast<int32_t>(f[2]);
-  }
-  return face;
-}
-#endif
-
 std::pair<std::vector<Eigen::Vector3i>, std::vector<Eigen::Vector3i>>
 DecodeFaces(draco::Mesh* mesh) {
   uint32_t num_faces = mesh->num_faces();
@@ -91,20 +75,6 @@ DecodeFaces(draco::Mesh* mesh) {
   return std::make_pair(indices, uv_indices);
 }
 
-#if 0
-
-bool EncodeFaces() {
-  for (FaceIndex i(0); i < in_mesh_->num_faces(); ++i) {
-    for (int j = 0; j < 3; ++j) {
-      if (!EncodeFaceCorner(i, j)) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-#endif
-
 }  // namespace
 
 namespace draco_decode {
@@ -124,7 +94,7 @@ bool DracoDecodeMesh(const std::vector<char>& data,
   draco::Mesh* mesh = nullptr;
   auto type_statusor = draco::Decoder::GetEncodedGeometryType(&buffer);
   if (!type_statusor.ok()) {
-    // return ReturnError(type_statusor.status());
+    printf("Decode error: %s\n", type_statusor.status().error_msg());
     return false;
   }
   const draco::EncodedGeometryType geom_type = type_statusor.value();
@@ -133,7 +103,7 @@ bool DracoDecodeMesh(const std::vector<char>& data,
     draco::Decoder decoder;
     auto statusor = decoder.DecodeMeshFromBuffer(&buffer);
     if (!statusor.ok()) {
-      // return ReturnError(statusor.status());
+      printf("Decode error: %s\n", statusor.status().error_msg());
       return false;
     }
     std::unique_ptr<draco::Mesh> in_mesh = std::move(statusor).value();
@@ -149,7 +119,7 @@ bool DracoDecodeMesh(const std::vector<char>& data,
     draco::Decoder decoder;
     auto statusor = decoder.DecodePointCloudFromBuffer(&buffer);
     if (!statusor.ok()) {
-      // return ReturnError(statusor.status());
+      printf("Decode error: %s\n", statusor.status().error_msg());
       return false;
     }
     pc = std::move(statusor).value();

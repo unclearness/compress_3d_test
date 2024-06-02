@@ -1,3 +1,5 @@
+#pragma once
+
 #include "Eigen/Geometry"
 
 namespace draco_decode {

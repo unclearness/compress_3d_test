@@ -70,29 +70,4 @@ add_executable(compress_3d_test app.cpp draco_encode.h draco_encode.cpp draco_de
 target_include_directories(compress_3d_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/win_build ${CMAKE_CURRENT_SOURCE_DIR}/third_party/draco/src ${Ugu_INCLUDE_DIRS})
 target_link_libraries(compress_3d_test PRIVATE draco ${Ugu_LIBS})
 
-# set(compress_3d_test_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include ${Ugu_INCLUDE_DIRS})
-# set(
-#   compress_3d_test_SOURCE
-#   include/compress_3d_test/compress_3d_test.h
-#   src/compress_3d_test.cc
-# )
-# add_library(compress_3d_test
-#   STATIC
-#   ${compress_3d_test_SOURCE}
-# )
-# target_include_directories(compress_3d_test PRIVATE ${compress_3d_test_INCLUDE_DIRS})
-# set(compress_3d_test_LIBS compress_3d_test ${Ugu_LIBS})
-
-# if(NOT hasParent)
-#   find_package(OpenCV REQUIRED)
-
-#   add_executable(file_input_file_output_app app/file_input_file_output.cc app/util.h app/util.cc app/statistical_outlier_removal.h)
-#   target_include_directories(file_input_file_output_app PRIVATE ${compress_3d_test_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/third_party/json/single_include)
-#   target_link_libraries(file_input_file_output_app PRIVATE ${compress_3d_test_LIBS} ${OpenCV_LIBS})
-
-#   add_executable(file_input_socket_send_app app/file_input_socket_send.cc app/util.h app/util.cc app/statistical_outlier_removal.h)
-#   target_include_directories(file_input_socket_send_app PRIVATE ${compress_3d_test_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/third_party/json/single_include)
-#   target_link_libraries(file_input_socket_send_app PRIVATE ${compress_3d_test_LIBS} ${OpenCV_LIBS})
-# endif()
-
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCE_LIST})
